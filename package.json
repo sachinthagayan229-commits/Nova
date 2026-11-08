@@ -1,3 +1,4 @@
+
 {
   "name": "nova-md",
   "version": "1.0.0",
@@ -16,7 +17,6 @@
     "@whiskeysockets/baileys": "^6.7.18",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
-    "ffmpeg-static": "^5.2.0",
     "google-tts-api": "^2.0.2",
     "mime-types": "^2.1.35",
     "pino": "^9.6.0",
