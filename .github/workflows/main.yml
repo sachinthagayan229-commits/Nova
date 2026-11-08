@@ -17,7 +17,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # cache: 'npm'  <-- මේක අයින් කළා!
 
       - name: Install Dependencies
         run: npm install
@@ -31,10 +30,34 @@ jobs:
           echo "PORT=${{ secrets.PORT }}" >> .env
           echo "SESSION_ID=${{ secrets.SESSION_ID }}" >> .env
           echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+          echo "AUTH_DIR=./session" >> .env
+          echo "DOWNLOAD_DIR=./downloads" >> .env
+
+      - name: Check File Structure
+        run: |
+          echo "📁 File Structure:"
+          ls -la
+          echo ""
+          echo "🔍 Finding index.js..."
+          find . -name "index.js" -type f -not -path "*/node_modules/*"
+          echo ""
+          echo "📄 package.json:"
+          cat package.json | grep -A 3 '"scripts"'
 
       - name: Start Bot (Test)
         run: |
-          timeout 30 npm start || true
+          echo "🚀 Starting Bot..."
+          # හරි File එක හොයාගන්න
+          if [ -f "index.js" ]; then
+            echo "✅ Found index.js in root"
+            timeout 30 node index.js || echo "Bot test finished"
+          elif [ -f "src/index.js" ]; then
+            echo "✅ Found src/index.js"
+            timeout 30 node src/index.js || echo "Bot test finished"
+          else
+            echo "❌ index.js not found! Trying npm start..."
+            timeout 30 npm start || echo "Bot test finished"
+          fi
         env:
           NODE_ENV: production
 
@@ -44,6 +67,7 @@ jobs:
           echo "✅ Bot Deploy වුණා!"
           echo "Bot Name: NOVA MD"
           echo "Status: Running"
+          echo "Timestamp: $(date)"
 
   keep-alive:
     runs-on: ubuntu-latest
