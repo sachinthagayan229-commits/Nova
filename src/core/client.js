@@ -7,130 +7,177 @@ import makeWASocket, {
 
 import { config } from '../config.js';
 import fs from 'fs';
+import path from 'path';
 import pino from 'pino';
 
+let isStarting = false;
+let reconnectTimer = null;
+
 export async function startBot() {
-    console.log('🔌 Connecting to WhatsApp...');
+    if (isStarting) return;
 
-    // Create folders
-    fs.mkdirSync(config.authDir, { recursive: true });
-    fs.mkdirSync(config.downloadDir, { recursive: true });
+    isStarting = true;
 
-    // Load authentication
-    const { state, saveCreds } =
-        await useMultiFileAuthState(config.authDir);
+    try {
+        console.log('🔌 Connecting to WhatsApp...');
 
-    const { version } = await fetchLatestBaileysVersion();
+        // Validate configuration
+        const authDir = config.authDir;
+        const downloadDir = config.downloadDir;
 
-    const sock = makeWASocket({
-        version,
-        auth: state,
-        logger: pino({ level: 'silent' }),
-        browser: ['Nova MD', 'Chrome', '20.0.0']
-    });
+        if (!authDir || !downloadDir) {
+            throw new Error('Authentication or Download directory is missing');
+        }
 
-    sock.ev.on('creds.update', saveCreds);
+        // Create folders
+        fs.mkdirSync(authDir, { recursive: true });
+        fs.mkdirSync(downloadDir, { recursive: true });
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
+        // Load Baileys authentication
+        const { state, saveCreds } =
+            await useMultiFileAuthState(authDir);
 
-        if (connection === 'close') {
-            const statusCode =
-                lastDisconnect?.error?.output?.statusCode;
+        // Get latest compatible Baileys version
+        const { version } = await fetchLatestBaileysVersion();
 
-            const shouldReconnect =
-                statusCode !== DisconnectReason.loggedOut;
+        const sock = makeWASocket({
+            version,
+            auth: state,
+            logger: pino({ level: 'silent' }),
+            browser: ['NOVA MD', 'Chrome', '20.0.0'],
+            markOnlineOnConnect: false,
+            syncFullHistory: false
+        });
 
-            console.log('❌ Connection closed:', statusCode);
+        // Save authentication updates
+        sock.ev.on('creds.update', saveCreds);
 
-            if (shouldReconnect) {
-                console.log('🔄 Reconnecting...');
-                setTimeout(() => startBot(), 5000);
-            } else {
-                console.log('⚠️ Logged out. New authentication required.');
+        // Connection handler
+        sock.ev.on('connection.update', (update) => {
+            const { connection, lastDisconnect } = update;
+
+            if (connection === 'connecting') {
+                console.log('⏳ Connecting...');
             }
-        }
 
-        if (connection === 'open') {
-            console.log('✅ Connected to WhatsApp!');
-            console.log('🤖 Bot:', config.botName);
-            console.log('📝 Prefix:', config.prefix);
-            console.log('🎉 NOVA MD is Ready!');
-        }
-    });
+            if (connection === 'open') {
+                console.log('================================');
+                console.log('✅ WhatsApp Connected!');
+                console.log(`🤖 Bot: ${config.botName}`);
+                console.log(`📱 Number: ${sock.user?.id?.split(':')[0]}`);
+                console.log(`📝 Prefix: ${config.prefix}`);
+                console.log('🎉 NOVA MD IS READY!');
+                console.log('================================');
+            }
 
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-        for (const msg of messages) {
-            if (!msg.message) continue;
+            if (connection === 'close') {
+                const statusCode =
+                    lastDisconnect?.error?.output?.statusCode;
 
-            const sender = msg.key.remoteJid;
-            if (!sender) continue;
+                console.log('❌ Connection Closed:', statusCode);
 
-            const senderNumber = sender.split('@')[0];
-
-            const messageText =
-                msg.message.conversation ||
-                msg.message.extendedTextMessage?.text ||
-                msg.message.imageMessage?.caption ||
-                '';
-
-            if (!messageText.startsWith(config.prefix)) continue;
-
-            const parts = messageText
-                .slice(config.prefix.length)
-                .trim()
-                .split(/\s+/);
-
-            const command = parts.shift()?.toLowerCase();
-
-            if (!command) continue;
-
-            const args = parts;
-
-            console.log(`📨 Command: ${command}`);
-
-            try {
-                switch (command) {
-                    case 'ping':
-                        await sock.sendMessage(sender, {
-                            text: '🏓 Pong!'
-                        }, { quoted: msg });
-                        break;
-
-                    case 'test':
-                        await sock.sendMessage(sender, {
-                            text: '✅ NOVA MD Working!'
-                        }, { quoted: msg });
-                        break;
-
-                    case 'menu':
-                    case 'help':
-                        await sock.sendMessage(sender, {
-                            text:
-`🤖 *${config.botName}*
-
-📝 Prefix: ${config.prefix}
-
-*COMMANDS*
-
-• .ping
-• .test
-• .menu
-
-✨ NOVA MD`
-                        }, { quoted: msg });
-                        break;
-
-                    default:
-                        await sock.sendMessage(sender, {
-                            text: `❌ Unknown command: ${command}`
-                        }, { quoted: msg });
+                if (statusCode === DisconnectReason.loggedOut) {
+                    console.log('⚠️ Session logged out. New login required.');
+                    return;
                 }
-            } catch (error) {
-                console.error('Command Error:', error);
-            }
-        }
-    });
 
-    return sock;
+                if (!reconnectTimer) {
+                    console.log('🔄 Reconnecting in 5 seconds...');
+
+                    reconnectTimer = setTimeout(() => {
+                        reconnectTimer = null;
+                        startBot().catch(console.error);
+                    }, 5000);
+                }
+            }
+        });
+
+        // Incoming messages
+        sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type !== 'notify') return;
+
+            for (const msg of messages) {
+                try {
+                    if (!msg.message) continue;
+
+                    const sender = msg.key.remoteJid;
+
+                    if (!sender || sender === 'status@broadcast') continue;
+
+                    const messageText =
+                        msg.message.conversation ||
+                        msg.message.extendedTextMessage?.text ||
+                        msg.message.imageMessage?.caption ||
+                        msg.message.videoMessage?.caption ||
+                        '';
+
+                    if (!messageText.startsWith(config.prefix)) continue;
+
+                    const parts = messageText
+                        .slice(config.prefix.length)
+                        .trim()
+                        .split(/\s+/);
+
+                    const command = parts.shift()?.toLowerCase();
+
+                    if (!command) continue;
+
+                    const args = parts;
+
+                    const senderNumber = sender.split('@')[0];
+
+                    console.log(`📨 Command: ${command} from ${senderNumber}`);
+
+                    switch (command) {
+                        case 'ping':
+                            await sock.sendMessage(sender, {
+                                text: '🏓 Pong!'
+                            }, { quoted: msg });
+                            break;
+
+                        case 'test':
+                            await sock.sendMessage(sender, {
+                                text: '✅ NOVA MD Working!'
+                            }, { quoted: msg });
+                            break;
+
+                        case 'menu':
+                        case 'help':
+                            await sock.sendMessage(sender, {
+                                text:
+`╭━━〔 🤖 ${config.botName} 〕━━╮
+┃
+┃ ✨ BOT COMMANDS
+┃
+┃ 🏓 ${config.prefix}ping
+┃ 🧪 ${config.prefix}test
+┃ 📋 ${config.prefix}menu
+┃
+┃ 👤 Owner: ${config.ownerNumber || 'Not Set'}
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯`
+                            }, { quoted: msg });
+                            break;
+
+                        default:
+                            await sock.sendMessage(sender, {
+                                text: `❌ Unknown command: ${command}`
+                            }, { quoted: msg });
+                    }
+
+                } catch (error) {
+                    console.error('❌ Message Error:', error);
+                }
+            }
+        });
+
+        return sock;
+
+    } catch (error) {
+        console.error('❌ Client Startup Error:', error);
+        throw error;
+
+    } finally {
+        isStarting = false;
+    }
 }
