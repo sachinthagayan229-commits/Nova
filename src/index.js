@@ -1,62 +1,18 @@
-name: Nova Bot 5H
+// Nova Bot - Main Entry Point
+import { startBot } from './core/client.js';
+import { config } from './config.js';
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+console.log('==========================================');
+console.log('🤖 NOVA MD - WhatsApp Bot');
+console.log('==========================================');
+console.log(`📝 Prefix: ${config.PREFIX}`);
+console.log(`👤 Owner: ${config.OWNER_NUMBER}`);
+console.log(`📱 Pairing: ${config.PAIRING_NUMBER}`);
+console.log(`🔑 Session: ${config.SESSION_ID ? 'Set ✅' : 'Not Set ❌'}`);
+console.log(`🤖 Groq API: ${config.GROQ_API_KEY ? 'Set ✅' : 'Not Set ❌'}`);
+console.log(`🤖 Model: ${config.GROQ_MODEL}`);
+console.log('==========================================');
+console.log('🚀 Starting Bot...');
 
-jobs:
-  bot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 300 # පැය 5 = විනාඩි 300
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Create .env File
-        run: |
-          cat > .env << EOF
-          PREFIX=${{ secrets.PREFIX }}
-          OWNER_NUMBER=${{ secrets.OWNER_NUMBER }}
-          PAIRING_NUMBER=${{ secrets.PAIRING_NUMBER }}
-          SESSION_ID=${{ secrets.SESSION_ID }}
-          AUTH_DIR=./session
-          DOWNLOAD_DIR=./downloads
-          BOT_NAME=NOVA MD
-          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL=llama-3.3-70b-versatile
-          AI_AUTO_REPLY=false
-          AUTO_STATUS_VIEW=true
-          ANTI_LINK=true
-          WELCOME=true
-          GOODBYE=true
-          ALLOWED_LINK_DOMAINS=chat.whatsapp.com
-          MAX_DOWNLOAD_MB=50
-          PORT=3000
-          EOF
-
-      - name: Create Folders
-        run: |
-          mkdir -p session downloads
-          echo "✅ Folders Created"
-
-      - name: Start Bot (5 Hours)
-        run: |
-          echo "🚀 Nova Bot Starting... (5 Hours)"
-          echo "📝 Prefix: ."
-          echo "⏰ Will run for 5 hours"
-          echo "=================================="
-          
-          # Bot එක Run කරනවා
-          node src/src/index.js
-          
-          echo "✅ Bot Stopped"
+// Start Bot
+startBot();
