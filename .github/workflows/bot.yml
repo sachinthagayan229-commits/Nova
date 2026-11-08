@@ -1,0 +1,55 @@
+name: Nova Bot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "PREFIX=." > .env
+          echo "OWNER_NUMBER=${{ secrets.OWNER_NUMBER }}" >> .env
+          echo "PAIRING_NUMBER=${{ secrets.PAIRING_NUMBER }}" >> .env
+          echo "SESSION_ID=${{ secrets.SESSION_ID }}" >> .env
+          echo "AUTH_DIR=./session" >> .env
+          echo "DOWNLOAD_DIR=./downloads" >> .env
+          echo "BOT_NAME=NOVA MD" >> .env
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+          echo "GROQ_MODEL=llama-3.3-70b-versatile" >> .env
+          echo "AI_AUTO_REPLY=false" >> .env
+          echo "AUTO_STATUS_VIEW=true" >> .env
+          echo "ANTI_LINK=true" >> .env
+          echo "WELCOME=true" >> .env
+          echo "GOODBYE=true" >> .env
+          echo "ALLOWED_LINK_DOMAINS=chat.whatsapp.com" >> .env
+          echo "MAX_DOWNLOAD_MB=50" >> .env
+          echo "PORT=3000" >> .env
+          echo "✅ .env File Created from Secrets"
+          cat .env
+
+      - name: Create Folders
+        run: mkdir -p session downloads
+
+      - name: Start Nova Bot
+        run: |
+          echo "🚀 Nova Bot Starting..."
+          echo "⏰ Timeout: 6 Hours"
+          node src/index.js
