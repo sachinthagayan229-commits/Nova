@@ -1,11 +1,8 @@
 
-name: NOVA MD QR Workflow
+name: NOVA MD QR Login
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   bot:
@@ -20,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install FFmpeg
         run: |
@@ -29,7 +27,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Create Folders
+      - name: Create Required Folders
         run: |
           mkdir -p session downloads
 
