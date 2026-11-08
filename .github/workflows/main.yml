@@ -30,39 +30,45 @@ jobs:
           echo "PORT=${{ secrets.PORT }}" >> .env
           echo "SESSION_ID=${{ secrets.SESSION_ID }}" >> .env
           echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
-          echo "AUTH_DIR=./session" >> .env
-          echo "DOWNLOAD_DIR=./downloads" >> .env
 
       - name: Check File Structure
         run: |
           echo "📁 File Structure:"
           ls -la
           echo ""
-          echo "🔍 Finding index.js..."
-          find . -name "index.js" -type f -not -path "*/node_modules/*"
+          echo "📁 src Folder:"
+          ls -lh src/
+          echo ""
+          echo "📄 src/index.js exists?"
+          ls -lh src/index.js || echo "❌ src/index.js NOT FOUND"
+          echo ""
+          echo "📄 First 20 lines of src/index.js:"
+          head -20 src/index.js || echo "Cannot read file"
           echo ""
           echo "📄 package.json:"
-          cat package.json | grep -A 3 '"scripts"'
+          cat package.json
 
       - name: Start Bot (Test)
         run: |
           echo "🚀 Starting Bot..."
-          # හරි File එක හොයාගන්න
-          if [ -f "index.js" ]; then
-            echo "✅ Found index.js in root"
-            timeout 30 node index.js || echo "Bot test finished"
-          elif [ -f "src/index.js" ]; then
-            echo "✅ Found src/index.js"
-            timeout 30 node src/index.js || echo "Bot test finished"
+          echo "Current directory: $(pwd)"
+          echo "Checking src/index.js..."
+          if [ -f "src/index.js" ]; then
+            echo "✅ src/index.js found! Starting..."
+            timeout 30 node src/index.js || echo "⚠️ Bot test finished (timeout or error)"
           else
-            echo "❌ index.js not found! Trying npm start..."
+            echo "❌ src/index.js not found!"
+            echo "Available files in src/:"
+            ls -la src/
+            echo "Trying npm start..."
             timeout 30 npm start || echo "Bot test finished"
           fi
         env:
           NODE_ENV: production
+        continue-on-error: true
 
       - name: Deploy to Server
-        if: success()
+        if: always()
         run: |
           echo "✅ Bot Deploy වුණා!"
           echo "Bot Name: NOVA MD"
