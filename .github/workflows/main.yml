@@ -1,80 +1,61 @@
-name: Deploy Nova Bot
+import 'dotenv/config';
+import { config } from '../config.js';
+import handler from '../handler.js';
+import { commands } from '../commands/index.js';
+import { createClient } from '../lib/client.js';
+import { loadSession } from '../lib/session.js';
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+// Bot Start කරනවා
+async function startBot() {
+  console.log(`🤖 ${config.botName} starting...`);
+  console.log(`👤 Owner: ${config.ownerNumber}`);
+  console.log(`📁 Auth Dir: ${config.authDir}`);
+  console.log(`📝 Prefix: ${config.prefix}`);
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  // Session Load කරනවා
+  const session = await loadSession();
+  console.log(`✅ Session loaded: ${session ? 'Yes' : 'No'}`);
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+  // Baileys Client Create කරනවා
+  const client = await createClient({
+    authDir: config.authDir,
+    onMessage: async (msg) => {
+      await handler(client, msg, config, commands);
+    },
+    onConnect: async () => {
+      console.log(`✅ ${config.botName} Connected!`);
+      console.log(`💬 Type ${config.prefix}menu to see commands`);
+    },
+    onDisconnect: async (reason) => {
+      console.log(`❌ Disconnected: ${reason}`);
+    }
+  });
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+  console.log(`🚀 ${config.botName} is ready!`);
+}
 
-      - name: Install Dependencies
-        run: npm install
+// Error Handle කරනවා
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
 
-      - name: Create .env File
-        run: |
-          echo "OWNER_NUMBER=${{ secrets.OWNER_NUMBER }}" >> .env
-          echo "PAIRING_NUMBER=${{ secrets.PAIRING_NUMBER }}" >> .env
-          echo "PREFIX=${{ secrets.PREFIX }}" >> .env
-          echo "BOT_NAME=${{ secrets.BOT_NAME }}" >> .env
-          echo "PORT=${{ secrets.PORT }}" >> .env
-          echo "SESSION_ID=${{ secrets.SESSION_ID }}" >> .env
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled Rejection:', reason);
+});
 
-      - name: Check File Structure
-        run: |
-          echo "📁 File Structure:"
-          ls -la
-          echo ""
-          echo "📁 src Folder:"
-          ls -R src/ | head -50
-          echo ""
-          echo "🔍 Finding index.js..."
-          find . -name "index.js" -type f -not -path "*/node_modules/*"
+// Bot Start කරනවා
+startBot().catch(err => {
+  console.error('❌ Failed to start bot:', err);
+  process.exit(1);
+});
 
-      - name: Start Bot (Test)
-        run: |
-          echo "🚀 Starting Bot..."
-          echo "Current directory: $(pwd)"
-          if [ -f "src/src/index.js" ]; then
-            echo "✅ Found src/src/index.js! Starting..."
-            timeout 30 node src/src/index.js || echo "⚠️ Bot test finished"
-          elif [ -f "src/index.js" ]; then
-            echo "✅ Found src/index.js! Starting..."
-            timeout 30 node src/index.js || echo "⚠️ Bot test finished"
-          elif [ -f "index.js" ]; then
-            echo "✅ Found index.js! Starting..."
-            timeout 30 node index.js || echo "⚠️ Bot test finished"
-          else
-            echo "❌ No index.js found!"
-            echo "Trying npm start..."
-            timeout 30 npm start || echo "Bot test finished"
-          fi
-        env:
-          NODE_ENV: production
-        continue-on-error: true
+// Graceful Shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down...');
+  process.exit(0);
+});
 
-      - name: Deploy to Server
-        if: always()
-        run: |
-          echo "✅ Bot Deploy වුණා!"
-          echo "Bot Name: NOVA MD"
-          echo "Status: Running"
-          echo "Timestamp: $(date)"
-
-  keep-alive:
-    runs-on: ubuntu-latest
-    needs: deploy
-    steps:
-      - name: Keep Alive
-        run: echo "Bot is alive!"
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down...');
+  process.exit(0);
+});
