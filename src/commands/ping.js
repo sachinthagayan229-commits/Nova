@@ -1,27 +1,15 @@
 export default {
-
   name: 'ping',
-
   description: 'Check bot status',
 
-  execute: async ({ sock, reply }) => {
-
+  execute: async ({ reply }) => {
     const start = Date.now();
-
-    await sock.sendMessage(
-      (await sock.user.id) ? 'status@broadcast' : 'status@broadcast',
-      { text: '' }
-    ).catch(() => {});
-
-    const speed = Date.now() - start;
 
     await reply(
       `🏓 *NOVA MD PONG!*\n\n` +
-      `⚡ Response: ${speed} ms\n` +
+      `⚡ Response: ${Date.now() - start} ms\n` +
       `🤖 Bot: Online\n` +
       `📡 WhatsApp: Connected`
     );
-
   }
-
 };
