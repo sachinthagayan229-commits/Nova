@@ -37,29 +37,26 @@ jobs:
           ls -la
           echo ""
           echo "📁 src Folder:"
-          ls -lh src/
+          ls -R src/ | head -50
           echo ""
-          echo "📄 src/index.js exists?"
-          ls -lh src/index.js || echo "❌ src/index.js NOT FOUND"
-          echo ""
-          echo "📄 First 20 lines of src/index.js:"
-          head -20 src/index.js || echo "Cannot read file"
-          echo ""
-          echo "📄 package.json:"
-          cat package.json
+          echo "🔍 Finding index.js..."
+          find . -name "index.js" -type f -not -path "*/node_modules/*"
 
       - name: Start Bot (Test)
         run: |
           echo "🚀 Starting Bot..."
           echo "Current directory: $(pwd)"
-          echo "Checking src/index.js..."
-          if [ -f "src/index.js" ]; then
-            echo "✅ src/index.js found! Starting..."
-            timeout 30 node src/index.js || echo "⚠️ Bot test finished (timeout or error)"
+          if [ -f "src/src/index.js" ]; then
+            echo "✅ Found src/src/index.js! Starting..."
+            timeout 30 node src/src/index.js || echo "⚠️ Bot test finished"
+          elif [ -f "src/index.js" ]; then
+            echo "✅ Found src/index.js! Starting..."
+            timeout 30 node src/index.js || echo "⚠️ Bot test finished"
+          elif [ -f "index.js" ]; then
+            echo "✅ Found index.js! Starting..."
+            timeout 30 node index.js || echo "⚠️ Bot test finished"
           else
-            echo "❌ src/index.js not found!"
-            echo "Available files in src/:"
-            ls -la src/
+            echo "❌ No index.js found!"
             echo "Trying npm start..."
             timeout 30 npm start || echo "Bot test finished"
           fi
