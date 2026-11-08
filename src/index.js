@@ -8,15 +8,14 @@ console.log('==========================================');
 
 console.log(`📝 Prefix: ${config.prefix}`);
 console.log(`👤 Owner: ${config.ownerNumber || 'Not Set'}`);
-console.log(`📱 Pairing: ${config.pairingNumber ? 'Set' : 'Not Set'}`);
-console.log(`🔑 Session: ${config.sessionId ? 'Set ✅' : 'Not Set ❌'}`);
-console.log(`🤖 Groq API: ${config.groqApiKey ? 'Set ✅' : 'Not Set ❌'}`);
-console.log(`🤖 Model: ${config.groqModel}`);
-
+console.log('📱 Login: QR Code');
+console.log('🔐 Authentication: Local Session');
 console.log('==========================================');
-console.log('🚀 Starting Bot...');
+console.log('🚀 Starting NOVA MD...');
 
-startBot().catch(error => {
+try {
+    await startBot();
+} catch (error) {
     console.error('❌ Bot Startup Failed:', error);
-    process.exit(1);
-});
+    process.exitCode = 1;
+}
