@@ -1,45 +1,47 @@
+
 import 'dotenv/config';
 
 const bool = (value, fallback = false) =>
-  value == null ? fallback : value.toLowerCase() === 'true';
+    value == null
+        ? fallback
+        : value.toLowerCase() === 'true';
 
 export const config = {
-  prefix: process.env.PREFIX || '.',
+    prefix: process.env.PREFIX || '.',
 
-  ownerNumber: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
+    ownerNumber: (process.env.OWNER_NUMBER || '')
+        .replace(/\D/g, ''),
 
-  pairingNumber: (process.env.PAIRING_NUMBER || '').replace(/\D/g, ''),
+    authDir: process.env.AUTH_DIR || './session',
 
-  sessionId: process.env.SESSION_ID || '',
+    downloadDir: process.env.DOWNLOAD_DIR || './downloads',
 
-  authDir: process.env.AUTH_DIR || './session',
+    botName: process.env.BOT_NAME || 'NOVA MD',
 
-  downloadDir: process.env.DOWNLOAD_DIR || './downloads',
+    groqApiKey: process.env.GROQ_API_KEY || '',
 
-  botName: process.env.BOT_NAME || 'NOVA MD',
+    groqModel: process.env.GROQ_MODEL ||
+        'llama-3.3-70b-versatile',
 
-  groqApiKey: process.env.GROQ_API_KEY || '',
+    aiAutoReply: bool(process.env.AI_AUTO_REPLY),
 
-  groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    autoStatusView: bool(process.env.AUTO_STATUS_VIEW, true),
 
-  aiAutoReply: bool(process.env.AI_AUTO_REPLY),
+    antiLink: bool(process.env.ANTI_LINK, true),
 
-  autoStatusView: bool(process.env.AUTO_STATUS_VIEW, true),
+    welcome: bool(process.env.WELCOME, true),
 
-  antiLink: bool(process.env.ANTI_LINK, true),
+    goodbye: bool(process.env.GOODBYE, true),
 
-  welcome: bool(process.env.WELCOME, true),
+    allowedLinkDomains: (
+        process.env.ALLOWED_LINK_DOMAINS ||
+        'chat.whatsapp.com'
+    )
+        .split(',')
+        .map(x => x.trim().toLowerCase())
+        .filter(Boolean),
 
-  goodbye: bool(process.env.GOODBYE, true),
+    maxDownloadMb: Number(process.env.MAX_DOWNLOAD_MB || 50),
 
-  allowedLinkDomains: (
-    process.env.ALLOWED_LINK_DOMAINS || 'chat.whatsapp.com'
-  )
-    .split(',')
-    .map(x => x.trim().toLowerCase())
-    .filter(Boolean),
-
-  maxDownloadMb: Number(process.env.MAX_DOWNLOAD_MB || 50),
-
-  port: Number(process.env.PORT || 3000)
+    port: Number(process.env.PORT || 3000)
 };
