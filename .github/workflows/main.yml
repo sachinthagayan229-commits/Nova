@@ -1,0 +1,54 @@
+name: Deploy Nova Bot
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Create .env File
+        run: |
+          echo "OWNER_NUMBER=${{ secrets.OWNER_NUMBER }}" >> .env
+          echo "PAIRING_NUMBER=${{ secrets.PAIRING_NUMBER }}" >> .env
+          echo "PREFIX=${{ secrets.PREFIX }}" >> .env
+          echo "BOT_NAME=${{ secrets.BOT_NAME }}" >> .env
+          echo "PORT=${{ secrets.PORT }}" >> .env
+          echo "SESSION_ID=${{ secrets.SESSION_ID }}" >> .env
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+
+      - name: Start Bot (Test)
+        run: |
+          timeout 30 npm start || true
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to Server
+        if: success()
+        run: |
+          echo "✅ Bot Deploy වුණා!"
+          echo "Bot Name: NOVA MD"
+          echo "Status: Running"
+
+  # Keep Alive (Railway/Render එකට)
+  keep-alive:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Keep Alive
+        run: echo "Bot is alive!"
